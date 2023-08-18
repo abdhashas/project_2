@@ -35,11 +35,11 @@ def perform_dwt():
     time_stretch = 1
     pitch_shift = 1
     if 'Amplitude' in request.form:
-        amplitude = int(request.form['Amplitude'])
+        amplitude = float(request.form['Amplitude'])
     if 'Time_stretch' in request.form:
-        time_stretch = int(request.form['Time_stretch'])
+        time_stretch = float(request.form['Time_stretch'])
     if 'Pitch_shift' in request.form:
-        pitch_shift = int(request.form['Pitch_shift'])
+        pitch_shift = float(request.form['Pitch_shift'])
 
     if 'audio' not in request.files:
         return 'No audio part'
@@ -51,6 +51,7 @@ def perform_dwt():
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
         # DWT
@@ -73,11 +74,11 @@ def perform_wpt():
     time_stretch = 1
     pitch_shift = 1
     if 'Amplitude' in request.form:
-        amplitude = int(request.form['Amplitude'])
+        amplitude = float(request.form['Amplitude'])
     if 'Time_stretch' in request.form:
-        time_stretch = int(request.form['Time_stretch'])
+        time_stretch = float(request.form['Time_stretch'])
     if 'Pitch_shift' in request.form:
-        pitch_shift = int(request.form['Pitch_shift'])
+        pitch_shift = float(request.form['Pitch_shift'])
 
     if 'audio' not in request.files:
         return 'No audio part'
@@ -89,9 +90,10 @@ def perform_wpt():
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
-        # DWT
+        # wpt
         reconstructed_signal = wpt(signal)#, wavelet, levels
     if amplitude != 1 :
         reconstructed_signal =Edit.change_amplitude(reconstructed_signal,amplitude)
@@ -110,11 +112,11 @@ def perform_lpc():
     time_stretch = 1
     pitch_shift = 1
     if 'Amplitude' in request.form:
-        amplitude = int(request.form['Amplitude'])
+        amplitude = float(request.form['Amplitude'])
     if 'Time_stretch' in request.form:
-        time_stretch = int(request.form['Time_stretch'])
+        time_stretch = float(request.form['Time_stretch'])
     if 'Pitch_shift' in request.form:
-        pitch_shift = int(request.form['Pitch_shift'])
+        pitch_shift = float(request.form['Pitch_shift'])
 
     if 'audio' not in request.files:
         return 'No audio part'
@@ -126,9 +128,10 @@ def perform_lpc():
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
-        # DWT
+        # lpc
         reconstructed_signal = lpc(signal)#, wavelet, levels
     if amplitude != 1 :
         reconstructed_signal =Edit.change_amplitude(reconstructed_signal,amplitude)
