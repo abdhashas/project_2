@@ -1,7 +1,7 @@
 import numpy as np 
 import pywt
 
-def audio_wpt(signal, wavelet='db4', levels=5):
+def wpt(signal, wavelet='db4', levels=5):
     normalized_signal = signal / np.max(np.abs(signal))
     wp = pywt.WaveletPacket(normalized_signal, wavelet, 'symmetric', maxlevel=levels)
     wpt_coeffs = [node.data for node in wp.get_level(levels, 'freq')]
