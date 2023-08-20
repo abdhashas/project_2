@@ -128,7 +128,7 @@ def upload_audio():
 @app.route('/download/<filename>', methods=['GET'])
 def download_audio(filename):
     global arr_reconstructed_signal
-    filepath = os.path.join('saved', filename + '.wav')
+    filepath = os.path.join('saved', filename)
     audio_data, sample_rate = librosa.load(filepath, sr=44100)
     if len(audio_data.shape) > 1:
         audio_array = audio_data.T
@@ -141,10 +141,10 @@ def download_audio(filename):
 
 @app.route('/array/<filename>', methods=['GET'])
 def download_sound_original(filename):
-    file_path = os.path.join('save', filename)
-    if os.path.exists(file_path):
-        signal, sample_rate = librosa.load(file_path)
-        return signal
+    path = f'saved/{str(filename)}'
+    if os.path.exists(path):
+        signal, _ = librosa.load(path)
+        return {'array': signal.tolist()}
     else:
         return 'file does not exist'
 
