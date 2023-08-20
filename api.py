@@ -19,7 +19,7 @@ api = Api(app)
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = './saved'
 ALLOWED_EXTENSIONS = 'wav'  # Define allowed audio file extensions
-
+arr_reconstructed_signal=[]
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -31,6 +31,7 @@ def allowed_file(filename):
 
 @app.route('/dwt', methods=['POST'])
 def perform_dwt():
+    global arr_reconstructed_signal
     # data = request.json
     amplitude = 1
     time_stretch = 1
@@ -63,9 +64,12 @@ def perform_dwt():
         reconstructed_signal =Edit.change_time_stretch(reconstructed_signal,time_stretch)
     if pitch_shift != 1 : 
         reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
- 
+    arr_reconstructed_signal = reconstructed_signal
+    output_filename =filename+" dwt.wav"
+    # output_filename = output_filename / np.max(np.abs(output_filename))
+    wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
-    return { 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in reconstructed_signal]}
+    return send_file(output_filename, as_attachment=True)
 
 
 @app.route('/wpt', methods=['POST'])
@@ -103,8 +107,12 @@ def perform_wpt():
     if pitch_shift != 1 : 
         reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
  
+    output_filename = filename+" wpt.wav"
+    # output_filename = output_filename / np.max(np.abs(output_filename))
+    wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
-    return { 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in reconstructed_signal]}
+
+    return send_file(output_filename, as_attachment=True)
 
 @app.route('/lpc', methods=['POST'])
 def perform_lpc():
@@ -140,13 +148,18 @@ def perform_lpc():
         reconstructed_signal =Edit.change_time_stretch(reconstructed_signal,time_stretch)
     if pitch_shift != 1 : 
         reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
- 
+    filename = secure_filename(audio_file.filename)
+    output_filename = filename+" lpc.wav"
+    # output_filename = output_filename / np.max(np.abs(output_filename))
+    wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
-    return { 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in reconstructed_signal]}
+
+    return send_file(output_filename, as_attachment=True) 
 
 
 @app.route('/upload', methods=['POST'])
 def upload_audio():
+    global arr_reconstructed_signal
     if 'audio' not in request.files:
         return 'No audio part'
 
@@ -165,36 +178,33 @@ def upload_audio():
         else:
             audio_array = np.array([audio_data])
 
-        audio_list = audio_array.tolist()
-        response_data = {
-            'filepath':filepath,
-            'audio_array': audio_list,
-        }
-        return jsonify(response_data)
+        arr_reconstructed_signal=audio_array
+ 
+        return send_file(filepath, as_attachment=True)
     else:
         return 'Invalid audio file'
 
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_audio(filename):
+    global arr_reconstructed_signal
     filepath = os.path.join('saved', filename+'.wav')
     audio_data, sample_rate = sf.read(filepath)
     if len(audio_data.shape) > 1:
         audio_array = audio_data.T
     else:
         audio_array = np.array([audio_data])
-  
-    audio_list = audio_array.tolist()
-    
-    response_data = {
-        'filepath':filepath,
-        'audio_array': audio_list,
-    }
-    # return jsonify(response_data)
-    return jsonify(response_data)
 
-    #return send_file(filepath, as_attachment=True) ,{ 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in audio_array]}
+    arr_reconstructed_signal=audio_array
+    return send_file(filepath, as_attachment=True)
 
+
+@app.route('/download/<filename>/array', methods=['GET'])
+def download_sond_orginal(filename):
+    global arr_reconstructed_signal
+    array= arr_reconstructed_signal
+    arr_reconstructed_signal=[]
+    return { 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in array]}
 
 
 if __name__ == '__main__':
