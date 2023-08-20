@@ -88,7 +88,7 @@ def perform_wpt():
     wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
     return send_file(output_filename, as_attachment=True)
-
+#,dsaidapsindoasjond
 @app.route('/lpc', methods=['POST'])
 def perform_lpc():
     signal,amplitude,time_stretch,pitch_shift,filename,sample_rate=decode()
