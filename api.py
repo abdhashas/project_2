@@ -43,7 +43,7 @@ def decode():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join('saved', filename + '.wav')
+        filepath = os.path.join('saved', filename)
         audio_file.save(filepath)
         signal, sample_rate = librosa.load(filepath, sr=44100)
     return signal, amplitude, time_stretch, pitch_shift, filename, sample_rate
@@ -67,7 +67,7 @@ def perform_dwt():
     signal, amplitude, time_stretch, pitch_shift, filename, sample_rate = decode()
     reconstructed_signal = dwt(signal)  # , wavelet, levels
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
-    output_filename = os.path.join('saved', filename + ' dwt.wav')
+    output_filename = os.path.join('saved', 'dwt_' + filename)
     sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
     return send_file(output_filename, as_attachment=True)
@@ -79,7 +79,7 @@ def perform_wpt():
     # wpt
     reconstructed_signal = wpt(signal)  # , wavelet, levels
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
-    output_filename = os.path.join('saved', filename + ' wpt.wav')
+    output_filename = os.path.join('saved', 'wpt_' + filename)
     # output_filename = output_filename / np.max(np.abs(output_filename))
     sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
@@ -91,7 +91,7 @@ def perform_lpc():
     signal, amplitude, time_stretch, pitch_shift, filename, sample_rate = decode()
     reconstructed_signal = lpc(signal)
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
-    output_filename = os.path.join('saved', filename + ' lpc.wav')
+    output_filename = os.path.join('saved', 'lpc_' + filename)
     sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
     return send_file(output_filename, as_attachment=True)
@@ -110,7 +110,7 @@ def upload_audio():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join('saved', filename + '.wav')
+        filepath = os.path.join('saved', filename)
         audio_file.save(filepath)
         audio_data, sample_rate = librosa.load(filepath, sr=44100)
         if len(audio_data.shape) > 1:
@@ -139,15 +139,25 @@ def download_audio(filename):
     return send_file(filepath, as_attachment=True)
 
 
-@app.route('/array', methods=['GET'])
-def download_sound_original():
-    global arr_reconstructed_signal
-    array = arr_reconstructed_signal
-    arr_reconstructed_signal = []
-    return {'array': array.tolist()}
+@app.route('/array/<filename>', methods=['GET'])
+def download_sound_original(filename):
+    file_path = os.path.join('save', filename)
+    if os.path.exists(file_path):
+        signal, sample_rate = librosa.load(file_path)
+        return signal
+    else:
+        return 'file does not exist'
 
 
 if __name__ == '__main__':
     app.run(debug=True)
 
 # host='192.168.1.3'
+
+
+# @app.route('/array/<filename>', methods=['GET'])
+# def download_sound_original(filename):
+#     global arr_reconstructed_signal
+#     array = arr_reconstructed_signal
+#     arr_reconstructed_signal = []
+#     return {'array': array.tolist()}
