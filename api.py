@@ -28,11 +28,8 @@ def allowed_file(filename):
 # @app.route('/', methods=['GET'])
 # def hello():
 #     return 'hello there'
-
-@app.route('/dwt', methods=['POST'])
-def perform_dwt():
+def decode():
     global arr_reconstructed_signal
-    # data = request.json
     amplitude = 1
     time_stretch = 1
     pitch_shift = 1
@@ -42,7 +39,6 @@ def perform_dwt():
         time_stretch = float(request.form['Time_stretch'])
     if 'Pitch_shift' in request.form:
         pitch_shift = float(request.form['Pitch_shift'])
-
     if 'audio' not in request.files:
         return 'No audio part'
     audio_file = request.files['audio']
@@ -54,18 +50,27 @@ def perform_dwt():
         filename = secure_filename(audio_file.filename)
         filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
-        sample_rate, signal = read(filepath)
+        signal,sample_rate = librosa.load(filepath,sr=44100) 
+    return  signal,amplitude,time_stretch,pitch_shift,filename,sample_rate
 
-        # DWT
-        reconstructed_signal = dwt(signal)#, wavelet, levels
+def edit(signal,sample_rate,amplitude,time_stretch,pitch_shift):
+    global arr_reconstructed_signal
     if amplitude != 1 :
-        reconstructed_signal =Edit.change_amplitude(reconstructed_signal,amplitude)
+        signal =Edit.change_amplitude(signal,amplitude)
     if time_stretch != 1 :
-        reconstructed_signal =Edit.change_time_stretch(reconstructed_signal,time_stretch)
+        signal =Edit.change_time_stretch(signal,time_stretch)
     if pitch_shift != 1 : 
-        reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
-    arr_reconstructed_signal = reconstructed_signal
-    output_filename =filename+" dwt.wav"
+        signal =Edit.change_pitch_shift(signal,pitch_shift,sample_rate)
+    arr_reconstructed_signal = signal  
+    return   signal
+
+@app.route('/dwt', methods=['POST'])
+def perform_dwt():
+    global arr_reconstructed_signal
+    signal,amplitude,time_stretch,pitch_shift,filename,sample_rate=decode()
+    reconstructed_signal = dwt(signal)#, wavelet, levels
+    reconstructed_signal=edit(reconstructed_signal,sample_rate,amplitude,time_stretch,pitch_shift)
+    output_filename = os.path.join('saved', filename+' dwt.wav')
     # output_filename = output_filename / np.max(np.abs(output_filename))
     wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
@@ -74,82 +79,22 @@ def perform_dwt():
 
 @app.route('/wpt', methods=['POST'])
 def perform_wpt():
-    # data = request.json
-    amplitude = 1
-    time_stretch = 1
-    pitch_shift = 1
-    if 'Amplitude' in request.form:
-        amplitude = float(request.form['Amplitude'])
-    if 'Time_stretch' in request.form:
-        time_stretch = float(request.form['Time_stretch'])
-    if 'Pitch_shift' in request.form:
-        pitch_shift = float(request.form['Pitch_shift'])
-
-    if 'audio' not in request.files:
-        return 'No audio part'
-    audio_file = request.files['audio']
-
-    if audio_file.filename == '':
-        return 'No selected file'
-
-    if audio_file and allowed_file(audio_file.filename):
-        filename = secure_filename(audio_file.filename)
-        filepath = os.path.join('saved', filename+'.wav')
-        audio_file.save(filepath)
-        sample_rate, signal = read(filepath)
-
+    signal,amplitude,time_stretch,pitch_shift,filename,sample_rate=decode()
         # wpt
-        reconstructed_signal = wpt(signal)#, wavelet, levels
-    if amplitude != 1 :
-        reconstructed_signal =Edit.change_amplitude(reconstructed_signal,amplitude)
-    if time_stretch != 1 :
-        reconstructed_signal =Edit.change_time_stretch(reconstructed_signal,time_stretch)
-    if pitch_shift != 1 : 
-        reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
- 
-    output_filename = filename+" wpt.wav"
+    reconstructed_signal = wpt(signal)#, wavelet, levels
+    reconstructed_signal=edit(reconstructed_signal,sample_rate,amplitude,time_stretch,pitch_shift)
+    output_filename = os.path.join('saved', filename+' wpt.wav')
     # output_filename = output_filename / np.max(np.abs(output_filename))
     wavfile.write(output_filename, sample_rate, reconstructed_signal) 
-
 
     return send_file(output_filename, as_attachment=True)
 
 @app.route('/lpc', methods=['POST'])
 def perform_lpc():
-    # data = request.json
-    amplitude = 1
-    time_stretch = 1
-    pitch_shift = 1
-    if 'Amplitude' in request.form:
-        amplitude = float(request.form['Amplitude'])
-    if 'Time_stretch' in request.form:
-        time_stretch = float(request.form['Time_stretch'])
-    if 'Pitch_shift' in request.form:
-        pitch_shift = float(request.form['Pitch_shift'])
-
-    if 'audio' not in request.files:
-        return 'No audio part'
-    audio_file = request.files['audio']
-
-    if audio_file.filename == '':
-        return 'No selected file'
-
-    if audio_file and allowed_file(audio_file.filename):
-        filename = secure_filename(audio_file.filename)
-        filepath = os.path.join('saved', filename+'.wav')
-        audio_file.save(filepath)
-        sample_rate, signal = read(filepath)
-
-        # lpc
-        reconstructed_signal = lpc(signal)#, wavelet, levels
-    if amplitude != 1 :
-        reconstructed_signal =Edit.change_amplitude(reconstructed_signal,amplitude)
-    if time_stretch != 1 :
-        reconstructed_signal =Edit.change_time_stretch(reconstructed_signal,time_stretch)
-    if pitch_shift != 1 : 
-        reconstructed_signal =Edit.change_pitch_shift(reconstructed_signal,pitch_shift,sample_rate)
-    filename = secure_filename(audio_file.filename)
-    output_filename = filename+" lpc.wav"
+    signal,amplitude,time_stretch,pitch_shift,filename,sample_rate=decode()
+    reconstructed_signal = lpc(signal)#, wavelet, levels
+    reconstructed_signal=edit(reconstructed_signal,sample_rate,amplitude,time_stretch,pitch_shift)
+    output_filename = os.path.join('saved', filename+' lpc.wav')
     # output_filename = output_filename / np.max(np.abs(output_filename))
     wavfile.write(output_filename, sample_rate, reconstructed_signal) 
 
@@ -172,7 +117,7 @@ def upload_audio():
         filename = secure_filename(audio_file.filename)
         filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
-        audio_data, sample_rate = sf.read(filepath)
+        audio_data,sample_rate = librosa.load(filepath,sr=44100)
         if len(audio_data.shape) > 1:
             audio_array = audio_data.T
         else:
@@ -189,7 +134,7 @@ def upload_audio():
 def download_audio(filename):
     global arr_reconstructed_signal
     filepath = os.path.join('saved', filename+'.wav')
-    audio_data, sample_rate = sf.read(filepath)
+    audio_data,sample_rate = librosa.load(filepath,sr=44100)
     if len(audio_data.shape) > 1:
         audio_array = audio_data.T
     else:
@@ -199,12 +144,12 @@ def download_audio(filename):
     return send_file(filepath, as_attachment=True)
 
 
-@app.route('/download/<filename>/array', methods=['GET'])
+@app.route('/array', methods=['GET'])
 def download_sond_orginal(filename):
     global arr_reconstructed_signal
     array= arr_reconstructed_signal
     arr_reconstructed_signal=[]
-    return { 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in array]}
+    return { 'array': array.tolist() }
 
 
 if __name__ == '__main__':

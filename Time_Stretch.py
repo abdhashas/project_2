@@ -31,3 +31,30 @@ def stretch(x, factor, nfft=2048):
         phase += local_dphi + phase_adv
 
     return librosa.core.istft(stft_new.transpose())
+
+def stretch_wo_loop(x, factor, nfft=2048):
+    '''
+    Functionality same as stretch()
+    :param x: np.ndarray, audio array in PCM float32 format
+    :param factor: float, stretching or shrinking factor, depending on if its > or < 1 respectively
+    :return: np.ndarray, time stretched audio
+    '''
+    stft = librosa.core.stft(x, n_fft=nfft).transpose()
+    stft_rows = stft.shape[0]
+    stft_cols = stft.shape[1]
+
+    times = np.arange(0, stft.shape[0], factor)
+    hop = nfft/4
+    phase_adv = (2 * np.pi * hop * np.arange(0, stft_cols))/ nfft
+    stft = np.concatenate((stft, np.zeros((1, stft_cols))), axis=0)
+
+    indices = np.floor(times).astype(int)
+    alpha = np.expand_dims(times - np.floor(times), axis=1)
+    mag = (1. - alpha) * np.absolute(stft[indices, :]) + alpha * np.absolute(stft[indices + 1, :])
+    dphi = np.angle(stft[indices + 1, :]) - np.angle(stft[indices, :]) - phase_adv
+    dphi = dphi - 2 * np.pi * np.floor(dphi/(2 * np.pi))
+    phase_adv_acc = np.matmul(np.expand_dims(np.arange(len(times) + 1),axis=1), np.expand_dims(phase_adv, axis=0))
+    phase = np.concatenate( (np.zeros((1, stft_cols)), np.cumsum(dphi, axis=0)), axis=0) + phase_adv_acc
+    phase += np.angle(stft[0, :])
+    stft_new = mag * np.exp(phase[:-1,:]*1j)
+    return librosa.core.istft(stft_new.transpose())
