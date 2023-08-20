@@ -2,7 +2,7 @@ from flask import Flask, request, send_file
 from werkzeug.utils import secure_filename
 import os
 import numpy as np
-from scipy.io import wavfile
+import soundfile as sf
 import librosa
 from DWT import dwt
 from WPT import wpt
@@ -68,8 +68,7 @@ def perform_dwt():
     reconstructed_signal = dwt(signal)  # , wavelet, levels
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
     output_filename = os.path.join('saved', filename + ' dwt.wav')
-    # output_filename = output_filename / np.max(np.abs(output_filename))
-    wavfile.write(output_filename, sample_rate, reconstructed_signal)
+    sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
     return send_file(output_filename, as_attachment=True)
 
@@ -82,20 +81,18 @@ def perform_wpt():
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
     output_filename = os.path.join('saved', filename + ' wpt.wav')
     # output_filename = output_filename / np.max(np.abs(output_filename))
-    wavfile.write(output_filename, sample_rate, reconstructed_signal)
+    sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
     return send_file(output_filename, as_attachment=True)
 
 
-# ,dsaidapsindoasjond
 @app.route('/lpc', methods=['POST'])
 def perform_lpc():
     signal, amplitude, time_stretch, pitch_shift, filename, sample_rate = decode()
-    reconstructed_signal = lpc(signal)  # , wavelet, levels
+    reconstructed_signal = lpc(signal)
     reconstructed_signal = edit(reconstructed_signal, sample_rate, amplitude, time_stretch, pitch_shift)
     output_filename = os.path.join('saved', filename + ' lpc.wav')
-    # output_filename = output_filename / np.max(np.abs(output_filename))
-    wavfile.write(output_filename, sample_rate, reconstructed_signal)
+    sf.write(output_filename, reconstructed_signal, int(sample_rate))
 
     return send_file(output_filename, as_attachment=True)
 
@@ -143,7 +140,7 @@ def download_audio(filename):
 
 
 @app.route('/array', methods=['GET'])
-def download_sound_original(filename):
+def download_sound_original():
     global arr_reconstructed_signal
     array = arr_reconstructed_signal
     arr_reconstructed_signal = []
