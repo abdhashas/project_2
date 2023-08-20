@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify,json
 from flask_restful import Resource, Api, reqparse
 from werkzeug.utils import secure_filename
 import os
@@ -25,9 +25,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/', methods=['GET'])
-def hello():
-    return 'hello there'
+# @app.route('/', methods=['GET'])
+# def hello():
+#     return 'hello there'
+
 @app.route('/dwt', methods=['POST'])
 def perform_dwt():
     # data = request.json
@@ -50,7 +51,7 @@ def perform_dwt():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
@@ -89,7 +90,7 @@ def perform_wpt():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
@@ -127,7 +128,7 @@ def perform_lpc():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
         sample_rate, signal = read(filepath)
 
@@ -156,17 +157,44 @@ def upload_audio():
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join('saved', filename+'.wav')
         audio_file.save(filepath)
-        return 'Audio uploaded successfully'
+        audio_data, sample_rate = sf.read(filepath)
+        if len(audio_data.shape) > 1:
+            audio_array = audio_data.T
+        else:
+            audio_array = np.array([audio_data])
+
+        audio_list = audio_array.tolist()
+        response_data = {
+            'filepath':filepath,
+            'audio_array': audio_list,
+        }
+        return jsonify(response_data)
     else:
         return 'Invalid audio file'
 
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_audio(filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    return send_file(filepath, as_attachment=True)
+    filepath = os.path.join('saved', filename+'.wav')
+    audio_data, sample_rate = sf.read(filepath)
+    if len(audio_data.shape) > 1:
+        audio_array = audio_data.T
+    else:
+        audio_array = np.array([audio_data])
+  
+    audio_list = audio_array.tolist()
+    
+    response_data = {
+        'filepath':filepath,
+        'audio_array': audio_list,
+    }
+    # return jsonify(response_data)
+    return jsonify(response_data)
+
+    #return send_file(filepath, as_attachment=True) ,{ 'reconstructed_signal': [reconstructed_signal1.tolist() for reconstructed_signal1 in audio_array]}
+
 
 
 if __name__ == '__main__':
