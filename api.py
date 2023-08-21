@@ -39,7 +39,7 @@ def decode():
     audio_file = request.files['audio']
 
     if audio_file.filename == '':
-        return 'No selected file'
+        return 'No selected file', 400  # invalid request
 
     if audio_file and allowed_file(audio_file.filename):
         filename = secure_filename(audio_file.filename)
@@ -122,7 +122,7 @@ def upload_audio():
 
         return send_file(filepath, as_attachment=True)
     else:
-        return 'Invalid audio file'
+        return 'Invalid audio file', 400  # invalid request
 
 
 @app.route('/download/<filename>', methods=['GET'])
@@ -146,7 +146,7 @@ def download_sound_original(filename):
         signal, _ = librosa.load(path)
         return {'array': signal.tolist()}
     else:
-        return 'file does not exist'
+        return 'file does not exist', 404  # not found
 
 
 if __name__ == '__main__':
