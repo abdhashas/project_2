@@ -152,7 +152,7 @@ def download_sound_original(filename):
 if __name__ == '__main__':
     app.run(debug=True)
 
-# host='192.168.1.3'
+# host='192.168.1.2'
 
 
 # @app.route('/array/<filename>', methods=['GET'])
